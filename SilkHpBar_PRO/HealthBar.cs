@@ -5,257 +5,302 @@ namespace SilkHpBar_PRO
 {
 	public class HealthBar : MonoBehaviour
 	{
-		private void Awake()
-		{
-			if (base.GetComponents<HealthBar>().Length > 1)
-			{
-				UnityEngine.Object.Destroy(this);
-			}
-			else
-			{
-				this.healthManager = base.GetComponent<HealthManager>();
-				this.maxHealth = (float)this.healthManager.hp;		//源文件HealthManager类中initHp不予访问无法进行引用
-				this.lastHealth = (float)this.healthManager.hp;
-				this.playerTransform = UnityEngine.Object.FindFirstObjectByType<HeroController>().transform;
-				this.colliders2D = base.GetComponent<Collider2D>();
-				this.lastDamageTime = Time.time;
-			}
-		}
-
-		private void Update()
-		{
-			if (!(this.healthManager == null) && Plugin.isNormal.Value)
-			{
-				this.CheckVisibilityConditions();
-				if (this.healthBarUI == null && !this.isUICreated)
-				{
-					this.CreateHealthBarUI();
-				}
-				float num = (float)this.healthManager.hp;
-				this.UpdateMaxHealth();
-				if (num != this.lastHealth)
-				{
-					this.lastHealth = num;
-					this.UpdateHealthBar();
-				}
-				if (this.healthBarUI != null)
-				{
-					this.UpdateHealthBarPosition();
-				}
-			}
-		}
-
-		private void UpdateHealthBarPosition()
-		{
-			if (!(this.healthBarUI == null) && !(HealthBar.sharedCanvas == null))
-			{
-				Vector3 headOffset = this.GetHeadOffset();
-				Vector3 vector = base.transform.position + headOffset;
-				GameCameras instance = GameCameras.instance;
-				Camera camera = instance != null ? instance.mainCamera : null;
-				if (camera != null)
-				{
-					Vector3 vector2 = camera.WorldToScreenPoint(vector);
-					if (vector2.z < 0f || vector2.x < 0f || vector2.x > (float)Screen.width || vector2.y < 0f || vector2.y > (float)Screen.height)
-					{
-						if (this.healthBarUI.activeSelf)
-						{
-							this.healthBarUI.SetActive(false);
-						}
-						return;
-					}
-					RectTransform component = this.healthBarUI.GetComponent<RectTransform>();
-					Vector2 vector3;
-					if (RectTransformUtility.ScreenPointToLocalPointInRectangle(HealthBar.sharedCanvas.GetComponent<RectTransform>(), vector2, null, out vector3))
-					{
-						vector3.x += Plugin.NormalPositionX.Value;
-						vector3.y += Plugin.NormalPositionY.Value;
-						component.localPosition = vector3;
-					}
-				}
-				if (!this.healthBarUI.activeSelf && this.isDamageVisible)
-				{
-					this.healthBarUI.SetActive(true);
-				}
-			}
-		}
-
-		private void CreateHealthBarUI()
-		{
-			if (!(this.healthBarUI != null) && Plugin.isNormal.Value)
-			{
-				this.healthBarUI = UnityEngine.Object.Instantiate<GameObject>(Plugin.healthBarPrefab);
-				Canvas component = this.healthBarUI.GetComponent<Canvas>();
-				if (component != null)
-				{
-					CanvasScaler component2 = this.healthBarUI.GetComponent<CanvasScaler>();
-					if (component2 != null)
-					{
-						UnityEngine.Object.DestroyImmediate(component2);
-					}
-					GraphicRaycaster component3 = this.healthBarUI.GetComponent<GraphicRaycaster>();
-					if (component3 != null)
-					{
-						UnityEngine.Object.DestroyImmediate(component3);
-					}
-					UnityEngine.Object.DestroyImmediate(component);
-				}
-				if (HealthBar.sharedCanvas == null)
-				{
-					GameObject gameObject = new GameObject("SharedHealthBarCanvas");
-					HealthBar.sharedCanvas = gameObject.AddComponent<Canvas>();
-					HealthBar.sharedCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-					HealthBar.sharedCanvas.sortingOrder = 100;
-					gameObject.AddComponent<CanvasScaler>();
-					gameObject.AddComponent<GraphicRaycaster>();
-				}
-				this.healthBarUI.transform.SetParent(HealthBar.sharedCanvas.transform, false);
-				Transform transform = this.healthBarUI.transform.Find("BG");
-				this.bgImage = transform.GetComponent<Image>();
-				this.fillImage = transform.Find("Fill").GetComponent<Image>();
-				this.fillImage.type = Image.Type.Filled;
-				this.fillImage.fillMethod = Image.FillMethod.Horizontal;
-				this.SetupUILayout();
-				this.UpdateHealthBar();
-				this.ShowHealthBar();
-				this.isUICreated = true;
-			}
-		}
-
-		private Vector3 GetHeadOffset()
-		{
-			return new Vector3(0f, 1f, 0f);
-		}
-
-		private void ShowHealthBar()
-		{
-			this.healthBarUI?.SetActive(true);
-		}
-
-		private void HideHealthBar()
-		{
-			this.healthBarUI?.SetActive(false);
-		}
-
-		private void SetupUILayout()
-		{
-			if (this.bgImage != null)
-			{
-				RectTransform rectTransform = this.bgImage.rectTransform;
-				rectTransform.localScale = Vector3.one * HealthBar.baseScale * Plugin.NormalScale.Value;
-				rectTransform.sizeDelta = new Vector2(240f + Plugin.NormalWidthOffset.Value, 36f + Plugin.NormalHeightOffset.Value);
-				this.fillImage.rectTransform.sizeDelta = rectTransform.sizeDelta;
-			}
-		}
-
-		public void RefreshLayout()
-		{
-			this.SetupUILayout();
-		}
-
-		private void UpdateMaxHealth()
-		{
-			if (!(this.healthManager == null))
-			{
-				float num = (float)this.healthManager.hp;
-				if (num > this.maxHealth && num <= 3000f)
-				{
-					this.maxHealth = num;
-				}
-			}
-		}
-
-		private void UpdateHealthBar()
-		{
-			if (!(this.fillImage == null) && !(this.healthManager == null))
-			{
-				float num = (float)this.healthManager.hp / this.maxHealth;
-				this.fillImage.fillAmount = num;
-			}
-		}
-
-		private void CheckVisibilityConditions()
-		{
-			if (!(this.healthBarUI == null) && !(this.playerTransform == null))
-			{
-				bool flag = true;
-				if (Vector3.Distance(base.transform.position, this.playerTransform.position) > this.detectionDistance)
-				{
-					flag = false;
-				}
-				if (!base.gameObject.activeInHierarchy)
-				{
-					flag = false;
-				}
-				if (!this.colliders2D || !this.colliders2D.enabled)
-				{
-					flag = false;
-				}
-				if (this.isDamageVisible && Time.time - this.lastDamageTime > Plugin.NormalHideDelay.Value)
-				{
-					this.isDamageVisible = false;
-				}
-				if (!this.isDamageVisible)
-				{
-					flag = false;
-				}
-				if (this.healthBarUI.activeSelf != flag)
-				{
-					if (flag)
-					{
-						this.ShowHealthBar();
-						return;
-					}
-					this.HideHealthBar();
-				}
-			}
-		}
-
-		public void OnTakeDamage()
-		{
-			this.lastDamageTime = Time.time;
-			this.isDamageVisible = true;
-			if (this.healthBarUI != null)
-			{
-				this.ShowHealthBar();
-			}
-		}
-
-		private void OnDestroy()
-		{
-			if (this.healthBarUI != null)
-			{
-				UnityEngine.Object.Destroy(this.healthBarUI);
-				this.healthBarUI = null;
-			}
-			this.isUICreated = false;
-		}
-
-		public HealthBar()
-		{
-			this.detectionDistance = 15f;
-			this.isDamageVisible = false;
-			this.isUICreated = false;
-		}
-
-		static HealthBar()
-		{
-			HealthBar.baseScale = 1f;
-		}
-
 		private HealthManager healthManager;
 		private float lastHealth;
 		private float maxHealth;
-		public float detectionDistance;
+		public float detectionDistance = 15f;
 		private Transform playerTransform;
 		private Collider2D colliders2D;
 		private GameObject healthBarUI;
 		private static Canvas sharedCanvas;
 		private Image bgImage;
 		private Image fillImage;
-		public static float baseScale;
+		private Vector2 bgOriginalSize;
+		private Vector2 fillOriginalSize;
+		public static float baseScale = 1f;
 		private float lastDamageTime;
-		private bool isDamageVisible;
-		private bool isUICreated;
+		private bool isDamageVisible = false;
+		private bool isUICreated = false;
+		private float screenHeight;
+		private float screenWidth;
+
+		private void Awake()
+		{
+			if (GetComponents<HealthBar>().Length > 1)
+			{
+				Destroy(this);
+			}
+			else
+			{
+				healthManager = GetComponent<HealthManager>();
+				maxHealth = (float)healthManager.hp;      //源文件HealthManager类中initHp不予访问无法进行引用
+				lastHealth = (float)healthManager.hp;
+				playerTransform = FindFirstObjectByType<HeroController>().transform;
+				colliders2D = GetComponent<Collider2D>();
+				lastDamageTime = Time.time;
+			}
+			screenHeight = Screen.height;
+			screenWidth = Screen.width;
+		}
+
+		private void Update()
+		{
+			if (healthManager != null && Plugin.IsNormal.Value)
+			{
+				CheckVisibilityConditions();
+				// 如果血条UI不存在且未创建过，创建它
+				if (healthBarUI == null && !isUICreated)
+				{
+					CreateHealthBarUI();
+				}
+				float num = (float)healthManager.hp;
+				// 实时更新最大生命值（处理转阶段情况）
+				UpdateMaxHealth();
+				if (num != lastHealth)
+				{
+					lastHealth = num;
+					UpdateHealthBar();
+				}
+				// 更新血条位置，使其跟随敌人
+				if (healthBarUI != null)
+				{
+					UpdateHealthBarPosition();
+				}
+			}
+		}
+
+		private void UpdateHealthBarPosition()
+		{
+			if (healthBarUI != null && sharedCanvas != null)
+			{
+				// 计算敌人头部的世界坐标
+				Vector3 headOffset = GetHeadOffset();
+				Vector3 vector = transform.position + headOffset;
+				// 将世界坐标转换为屏幕坐标
+				Camera maincamera = GameCameras.instance?.mainCamera;
+				// 屏幕边界检查
+				if (maincamera != null)
+				{
+					Vector3 screenPosition = maincamera.WorldToScreenPoint(vector);
+					if (screenPosition.z < 0f ||
+						screenPosition.x < 0f || screenPosition.x > screenWidth || screenPosition.y < 0f || screenPosition.y > screenHeight)
+					{
+						// 如果超出屏幕边界，隐藏血条
+						if (healthBarUI.activeSelf)
+						{
+							healthBarUI.SetActive(false);
+						}
+						return;
+					}
+					// 血条现在是Canvas的子对象，直接转换为Canvas本地坐标
+					RectTransform healthBarRect = healthBarUI.GetComponent<RectTransform>();
+					RectTransform canvasRect = sharedCanvas.GetComponent<RectTransform>();
+
+                    if (RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRect, screenPosition, null, out Vector2 localPoint))
+                    {
+                        // 应用位置偏移配置
+                        localPoint.x += Plugin.NormalPositionX.Value;
+                        localPoint.y += Plugin.NormalPositionY.Value;
+                        healthBarRect.localPosition = localPoint;
+                    }
+                }
+				if (!healthBarUI.activeSelf && isDamageVisible)
+				{
+					healthBarUI.SetActive(true);
+				}
+			}
+		}
+
+		private void CreateHealthBarUI()
+		{
+		    // 如果已经创建或者不需要显示，则跳过
+		    if (healthBarUI != null || !Plugin.IsNormal.Value)
+		        return;
+		    // 实例化新的 Health Bar UI Prefab
+		    healthBarUI = Instantiate(Plugin.healthBarPrefab);
+			// 移除预制体自带的Canvas组件及其依赖组件
+		    Canvas uiCanvas = healthBarUI.GetComponent<Canvas>();
+		    if (uiCanvas != null)
+		    {
+				// 先移除依赖组件
+		        CanvasScaler uiCanvasScaler = healthBarUI.GetComponent<CanvasScaler>();
+		        if (uiCanvasScaler != null)
+		        {
+		            DestroyImmediate(uiCanvasScaler);
+		        }
+		        GraphicRaycaster uiGraphicRaycaster = healthBarUI.GetComponent<GraphicRaycaster>();
+		        if (uiGraphicRaycaster != null)
+		        {
+		            DestroyImmediate(uiGraphicRaycaster);
+		        }
+				// 最后移除Canvas
+		        DestroyImmediate(uiCanvas);
+		    }
+			// 创建或获取共享Canvas
+		    if (sharedCanvas == null)
+		    {
+		        GameObject gameObject = new GameObject("SharedHealthBarCanvas");
+		        sharedCanvas = gameObject.AddComponent<Canvas>();
+		        sharedCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+		        sharedCanvas.sortingOrder = 100;
+		        gameObject.AddComponent<CanvasScaler>();
+		        gameObject.AddComponent<GraphicRaycaster>();
+		    }
+		    healthBarUI.transform.SetParent(sharedCanvas.transform, false);
+
+		    Transform bgTransform = healthBarUI.transform.Find("BG");
+		    if (bgTransform == null)
+		    {
+		        Plugin.Log.LogError("<HealthBar>对象下未找到<BG>对象");
+		        return;
+		    }
+		    bgImage = bgTransform.GetComponent<Image>();
+			bgOriginalSize = bgImage.rectTransform.sizeDelta;
+
+		    Transform fillTransform = bgTransform.Find("Fill");
+		    if (fillTransform == null)
+		    {
+		        Plugin.Log.LogError("<HealthBar>对象中的<BG>对象下未找到<Fill>对象");
+		        return;
+		    }
+		    fillImage = fillTransform.GetComponent<Image>();
+		    if (fillImage == null)
+		    {
+		        Plugin.Log.LogError("<HealthBar>对象中的<Fill>对象没有添加<Image>");
+		        return;
+		    }
+			fillOriginalSize = fillImage.rectTransform.sizeDelta;
+		    fillImage.type = Image.Type.Filled;
+		    fillImage.fillMethod = Image.FillMethod.Horizontal;
+		    SetupUILayout();
+		    UpdateHealthBar(); // 初始化血条填充
+		    ShowHealthBar(); // 创建后立即显示
+		    isUICreated = true; // 标记UI已创建
+		}
+
+		private Vector3 GetHeadOffset()
+		{
+			// 完全基于敌人对象的position，使用固定偏移值
+            // 不再依赖碰撞体或渲染器边界
+			return new Vector3(0f, 1f, 0f);
+		}
+
+		private void ShowHealthBar()
+		{
+			healthBarUI?.SetActive(true);
+		}
+
+		private void HideHealthBar()
+		{
+			healthBarUI?.SetActive(false);
+		}
+
+		private void SetupUILayout()
+		{
+			// HealthBar使用WorldSpace渲染模式，不需要设置锚点
+            // 位置通过transform.position在世界坐标中设置
+		    if (bgImage != null && fillImage != null)
+			{
+				RectTransform bgRectTF = bgImage.rectTransform;
+				Vector2 newSizeDelta = new Vector2(Plugin.NormalWidthOffset.Value, Plugin.NormalHeightOffset.Value);
+				float scale = baseScale * Plugin.NormalScale.Value;
+
+				bgRectTF.localScale = Vector3.one * scale;
+				bgRectTF.sizeDelta = bgOriginalSize * newSizeDelta;
+				fillImage.rectTransform.sizeDelta = fillOriginalSize * newSizeDelta;
+			}
+		}
+
+		public void RefreshLayout()
+		{
+			SetupUILayout();
+		}
+
+		private void UpdateMaxHealth()
+		{
+			if (healthManager != null)
+			{
+				float num = (float)healthManager.hp;
+				// 如果当前血量大于初始最大血量，且不超过3000的上限阈值，则更新最大血量
+				if (num > maxHealth && num <= 3000f)
+				{
+					maxHealth = num;
+				}
+			}
+		}
+
+		private void UpdateHealthBar()
+		{
+			if (fillImage != null && healthManager != null)
+			{
+				float num = (float)healthManager.hp / maxHealth;
+				fillImage.fillAmount = num;
+			}
+		}
+
+		private void CheckVisibilityConditions()
+		{
+		    if (healthBarUI == null || playerTransform == null)
+		        return;
+		    bool shouldBeVisible = true;
+		    // 检查距离条件
+		    float distanceSquared = (transform.position - playerTransform.position).sqrMagnitude;
+		    if (distanceSquared > detectionDistance * detectionDistance)
+		    {
+		        shouldBeVisible = false;
+		    }
+		    // 检查游戏对象激活状态
+		    if (!gameObject.activeInHierarchy)
+		    {
+		        shouldBeVisible = false;
+		    }
+		    // 检查碰撞器状态
+		    if (!colliders2D || !colliders2D.enabled)
+		    {
+		        shouldBeVisible = false;
+		    }
+		    // 检查伤害显示时间
+		    if (isDamageVisible && Time.time - lastDamageTime > Plugin.NormalHideDelay.Value)
+		    {
+		        isDamageVisible = false;
+		    }
+			// 检查在受过伤害时显示血条
+		    if (!isDamageVisible)
+			{
+				shouldBeVisible = false;
+			}
+		    // 更新血条显示状态
+		    if (healthBarUI.activeSelf != shouldBeVisible)
+		    {
+		        if (shouldBeVisible)
+		        {
+		            ShowHealthBar();
+		            return;
+		        }
+		        HideHealthBar();
+		    }
+		}
+
+		public void OnTakeDamage()
+		{
+			lastDamageTime = Time.time;
+			isDamageVisible = true;
+			if (healthBarUI != null)
+			{
+				ShowHealthBar();
+			}
+		}
+
+		private void OnDestroy()
+		{
+			if (healthBarUI != null)
+			{
+				Destroy(healthBarUI);
+				healthBarUI = null;
+			}
+			isUICreated = false;
+			// 不销毁共享Canvas，让其他血条继续使用
+            // 只有当没有其他血条时才销毁共享Canvas
+		}
 	}
 }

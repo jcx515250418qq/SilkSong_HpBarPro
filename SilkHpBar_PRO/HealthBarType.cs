@@ -1,9 +1,21 @@
 ﻿using HarmonyLib;
-using HealthbarPlugin;
-using System;
+using UnityEngine;
 
 namespace SilkHpBar_PRO
 {
+	// 决定血条类似是Boss还是普通小怪
+	public class HealthBarType : MonoBehaviour
+	{
+        public enum BarType
+        {
+            Normal,
+            Boss
+        }
+        public float lastHp;
+        public BarType barType = BarType.Normal;
+    }
+
+	// 使用 Harmony 补丁在游戏运行时修改 HealthManager 类的行为
 	[HarmonyPatch]
 	public class Patch
 	{
@@ -14,16 +26,16 @@ namespace SilkHpBar_PRO
 			int maxHealth = __instance.hp;
 			if (maxHealth >= 5)
 			{
-				HealthBarData healthBarData = __instance.gameObject.AddComponent<HealthBarData>();
+				HealthBarType healthBarData = __instance.gameObject.AddComponent<HealthBarType>();
 				if (maxHealth > Plugin.BossHealthThreshold.Value)
 				{
 					__instance.gameObject.AddComponent<BossHealthBar>();
-					healthBarData.barType = HealthBarData.BarType.Boss;
+					healthBarData.barType = HealthBarType.BarType.Boss;
 				}
 				else
 				{
 					__instance.gameObject.AddComponent<HealthBar>();
-					healthBarData.barType = HealthBarData.BarType.Normal;
+					healthBarData.barType = HealthBarType.BarType.Normal;
 				}
 			}
 		}
@@ -32,7 +44,7 @@ namespace SilkHpBar_PRO
 		[HarmonyPrefix]
 		public static void TakeDamagePrefix(HealthManager __instance)
 		{
-			HealthBarData component = __instance.GetComponent<HealthBarData>();
+			HealthBarType component = __instance.GetComponent<HealthBarType>();
 			if (!(component == null))
 			{
 				component.lastHp = (float)__instance.hp;
@@ -43,22 +55,22 @@ namespace SilkHpBar_PRO
 		[HarmonyPostfix]
 		public static void TakeDamagePatch(HealthManager __instance)
 		{
-			HealthBarData component = __instance.GetComponent<HealthBarData>();
+			HealthBarType component = __instance.GetComponent<HealthBarType>();
 			if (!(component == null))
 			{
 				float num = component.lastHp - (float)__instance.hp;
 				if (component.lastHp - (float)__instance.hp != 0f)
 				{
-                    DamageTextManager.Instance.ShowDamageText(__instance.transform.position, num);
+					DamageText.Instance.ShowDamageText(__instance.transform.position, num);
 				}
-				if (component.barType == HealthBarData.BarType.Boss)
+				if (component.barType == HealthBarType.BarType.Boss)
 				{
 					BossHealthBar bossHealthBar = __instance.GetComponent<BossHealthBar>() ?? __instance.gameObject.AddComponent<BossHealthBar>();
-                    bossHealthBar.OnTakeDamage();
+					bossHealthBar.OnTakeDamage();
 					return;
 				}
 				HealthBar healthBar = __instance.GetComponent<HealthBar>() ?? __instance.gameObject.AddComponent<HealthBar>();
-                healthBar.OnTakeDamage();
+				healthBar.OnTakeDamage();
 			}
 		}
 	}

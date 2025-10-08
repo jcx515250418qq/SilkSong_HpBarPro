@@ -1,12 +1,10 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Silk_HpBar_PRO
+namespace SilkHpBar_PRO
 {
-    /// <summary>
     /// BOSS血条管理器，负责管理多个BOSS血条的位置和显示逻辑
-    /// </summary>
     public class BossHealthBarManager : MonoBehaviour
     {
         private static BossHealthBarManager _instance;
@@ -24,10 +22,10 @@ namespace Silk_HpBar_PRO
             }
         }
 
-        private List<BossHealthBar> activeBossHealthBars = new List<BossHealthBar>();
-        private  float HEALTH_BAR_SPACING = 50; // 血条间隔
-        private  int MAX_HEALTH_BARS = 2; // 最大血条数量
-        private  float SCREEN_TOP_THRESHOLD = 0.6f; // 屏幕上方阈值（0-1）
+        private readonly List<BossHealthBar> activeBossHealthBars = new List<BossHealthBar>();
+        private readonly float HEALTH_BAR_SPACING = 50; // 血条间隔
+        private readonly int MAX_HEALTH_BARS = 2; // 最大血条数量
+        private readonly float SCREEN_TOP_THRESHOLD = 0.6f; // 屏幕上方阈值（0-1）
 
         private void Awake()
         {
@@ -42,11 +40,8 @@ namespace Silk_HpBar_PRO
             }
         }
 
-        /// <summary>
         /// 注册新的BOSS血条
-        /// </summary>
         /// <param name="healthBar">要注册的血条</param>
-        /// <returns>是否成功注册（false表示已达到最大数量）</returns>
         public bool RegisterHealthBar(BossHealthBar healthBar)
         {
             if (activeBossHealthBars.Count >= MAX_HEALTH_BARS)
@@ -58,10 +53,7 @@ namespace Silk_HpBar_PRO
             ArrangeHealthBars();
             return true;
         }
-
-        /// <summary>
         /// 注销BOSS血条
-        /// </summary>
         /// <param name="healthBar">要注销的血条</param>
         public void UnregisterHealthBar(BossHealthBar healthBar)
         {
@@ -70,10 +62,7 @@ namespace Silk_HpBar_PRO
                 ArrangeHealthBars();
             }
         }
-
-        /// <summary>
         /// 重新排列所有血条的位置
-        /// </summary>
         public void ArrangeHealthBars()
         {
             if (activeBossHealthBars.Count == 0) return;
@@ -133,12 +122,8 @@ namespace Silk_HpBar_PRO
                 healthBarRect.anchoredPosition = newPosition;
             }
         }
-
-        /// <summary>
         /// 判断血条是否在屏幕上方
-        /// </summary>
         /// <param name="healthBarRect">血条的RectTransform</param>
-        /// <returns>是否在屏幕上方</returns>
         private bool IsInUpperScreen(RectTransform healthBarRect)
         {
             if (healthBarRect == null) return false;
@@ -164,19 +149,13 @@ namespace Silk_HpBar_PRO
 
             return relativeY > SCREEN_TOP_THRESHOLD;
         }
-
-        /// <summary>
         /// 获取当前活跃的血条数量
-        /// </summary>
-        /// <returns>活跃血条数量</returns>
         public int GetActiveHealthBarCount()
         {
             return activeBossHealthBars.Count;
         }
 
-        /// <summary>
         /// 清理所有血条
-        /// </summary>
         public void ClearAllHealthBars()
         {
             activeBossHealthBars.Clear();
